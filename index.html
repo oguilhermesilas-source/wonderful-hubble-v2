@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IDEAL - Estética Automotiva</title>
+    <meta name="description" content="Sistema de checklist profissional para estética automotiva IDEAL - Gerenciamento de serviços, vistoria e comprovantes.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS Client SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Pre-configuration File (Optional) -->
+    <script src="config.js"></script>
+    <!-- Main Style -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Login Screen Overlay -->
+    <div class="login-screen" id="login-screen">
+        <div class="login-card" id="login-card">
+            <div class="login-header">
+                <i class="fa-solid fa-car-burst login-logo-icon"></i>
+                <h2>IDEAL</h2>
+                <span>Estética Automotiva</span>
+            </div>
+            <form id="login-form" autocomplete="off">
+                <div class="input-group">
+                    <label for="login-username">Usuário</label>
+                    <div class="input-wrapper">
+                        <i class="fa-regular fa-user"></i>
+                        <input type="text" id="login-username" required placeholder="Usuário">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label for="login-password">Senha</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" id="login-password" required placeholder="Senha">
+                    </div>
+                </div>
+                <div class="login-error-msg" id="login-error-msg">
+                    <i class="fa-solid fa-circle-exclamation"></i> Usuário ou senha incorretos!
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" id="login-btn-submit">
+                    <i class="fa-solid fa-right-to-bracket"></i> Acessar Sistema
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div class="app-container" id="main-app-container" style="display: none;">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-logo">
+                <i class="fa-solid fa-car-burst logo-icon"></i>
+                <div class="logo-text">
+                    <h1>IDEAL</h1>
+                    <span>Estética Automotiva</span>
+                </div>
+            </div>
+            <div class="header-info">
+                <!-- Status Badge -->
+                <div class="status-badge status-offline" id="connection-status-badge">
+                    <span class="status-dot"></span>
+                    <span class="status-label">Modo Local</span>
+                </div>
+                <div class="info-item desktop-only">
+                    <i class="fa-regular fa-envelope"></i>
+                    <span>idealbalneario@gmail.com</span>
+                </div>
+                <div class="icon-btn" id="admin-toggle-btn" title="Painel Administrativo" style="display: none;">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+                <div class="icon-btn" id="settings-toggle-btn" title="Configurações do Banco de Dados">
+                    <i class="fa-solid fa-sliders"></i>
+                </div>
+                <div class="icon-btn" id="logout-btn" title="Sair do Sistema">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </div>
+                <div class="theme-toggle" id="theme-toggle-btn" title="Alternar Tema">
+                    <i class="fa-solid fa-moon"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Grid -->
+        <main class="app-content">
+            <!-- Left Panel: Checklist Form -->
+            <section class="form-panel">
+                <div class="panel-header">
+                    <h2><i class="fa-solid fa-file-signature"></i> Novo Checklist de Entrada</h2>
+                    <p>Preencha os dados do veículo e selecione os serviços.</p>
+                </div>
+
+                <form id="checklist-form" autocomplete="off">
+                    <!-- Section 0: Photo Capture -->
+                    <div class="form-section photo-section">
+                        <h3><i class="fa-solid fa-camera"></i> Foto do Veículo</h3>
+                        <p class="section-help-text">Tire uma foto para registro e preenchimento automático (IA).</p>
+                        <input type="file" accept="image/*" capture="environment" id="vehicle-photo-input" style="display:none;">
+                        <button type="button" class="photo-capture-btn" id="photo-capture-btn">
+                            <i class="fa-solid fa-camera-retro"></i>
+                            <span>📸 Tirar Foto do Veículo</span>
+                        </button>
+                        <div class="ai-status" id="ai-status" style="display:none;">
+                            <i class="fa-solid fa-spinner fa-spin"></i> Processando...
+                        </div>
+                        <div class="photo-preview-container" id="photo-preview-container" style="display:none;">
+                            <img id="photo-preview-img" alt="Foto do veículo">
+                            <button type="button" class="photo-remove-btn" id="photo-remove-btn" title="Remover foto">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Section 1: Customer & Vehicle -->
+                    <div class="form-section">
+                        <h3><i class="fa-solid fa-user-gear"></i> Dados do Cliente & Veículo</h3>
+                        <div class="form-grid">
+                            <div class="input-group">
+                                <label for="client-name">Cliente *</label>
+                                <div class="input-wrapper">
+                                    <i class="fa-regular fa-user"></i>
+                                    <input type="text" id="client-name" required placeholder="Nome completo do cliente">
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label for="client-whatsapp">WhatsApp *</label>
+                                <div class="input-wrapper">
+                                    <i class="fa-brands fa-whatsapp"></i>
+                                    <input type="tel" id="client-whatsapp" required placeholder="(00) 90000-0000">
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label for="vehicle-brand">Marca *</label>
+                                <div class="input-wrapper">
+                                    <i class="fa-solid fa-copyright"></i>
+                                    <input type="text" id="vehicle-brand" required placeholder="Ex: Chevrolet, Honda">
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label for="vehicle-model">Modelo *</label>
+                                <div class="input-wrapper">
+                                    <i class="fa-solid fa-car"></i>
+                                    <input type="text" id="vehicle-model" required placeholder="Ex: Civic G10, Onix">
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label for="vehicle-color">Cor *</label>
+                                <div class="input-wrapper">
+                                    <i class="fa-solid fa-palette"></i>
+                                    <input type="text" id="vehicle-color" required placeholder="Ex: Preto, Prata, Branco">
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label for="vehicle-plate">Placa *</label>
+                                <div class="input-wrapper">
+                                    <i class="fa-solid fa-credit-card"></i>
+                                    <input type="text" id="vehicle-plate" required placeholder="Ex: ABC1D23 ou AAA-1234">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Vehicle Size + Services -->
+                    <div class="form-section">
+                        <h3><i class="fa-solid fa-screwdriver-wrench"></i> Seleção de Serviços</h3>
+                        
+                        <!-- Vehicle Size Selector -->
+                        <div class="size-selector-container">
+                            <label class="size-selector-label">Porte do Veículo:</label>
+                            <div class="size-selector-group">
+                                <button type="button" class="size-selector-btn active" data-size="P">
+                                    <i class="fa-solid fa-car-side"></i>
+                                    <span>Pequeno</span>
+                                </button>
+                                <button type="button" class="size-selector-btn" data-size="M">
+                                    <i class="fa-solid fa-car"></i>
+                                    <span>Médio</span>
+                                </button>
+                                <button type="button" class="size-selector-btn" data-size="G">
+                                    <i class="fa-solid fa-truck-pickup"></i>
+                                    <span>Grande</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Dynamic Services List (rendered by JS) -->
+                        <div class="services-list" id="services-list-container">
+                            <!-- Dynamic service items generated by app.js -->
+                        </div>
+                    </div>
+
+                    <!-- Section 3: Payment Method -->
+                    <div class="form-section">
+                        <h3><i class="fa-solid fa-wallet"></i> Forma de Pagamento</h3>
+                        <div class="payment-methods-container">
+                            <button type="button" class="payment-method-btn active" data-method="cartao">
+                                <i class="fa-solid fa-credit-card"></i>
+                                <span>💳 Cartão</span>
+                                <small>Preço base</small>
+                            </button>
+                            <button type="button" class="payment-method-btn" data-method="pix">
+                                <i class="fa-solid fa-qrcode"></i>
+                                <span>📱 PIX</span>
+                                <small>−5% desconto</small>
+                            </button>
+                            <button type="button" class="payment-method-btn" data-method="dinheiro">
+                                <i class="fa-solid fa-money-bill-wave"></i>
+                                <span>💵 Dinheiro</span>
+                                <small>−10% desconto</small>
+                            </button>
+                        </div>
+                        <div class="installment-row" id="installment-section">
+                            <label for="installment-select">Parcelamento:</label>
+                            <select id="installment-select">
+                                <option value="1">À vista (1x)</option>
+                                <option value="2">2x sem juros</option>
+                                <option value="3">3x (juros maquininha)</option>
+                                <option value="4">4x (juros maquininha)</option>
+                                <option value="5">5x (juros maquininha)</option>
+                                <option value="6">6x (juros maquininha)</option>
+                            </select>
+                        </div>
+                        <div class="installment-info" id="installment-info" style="display:none;"></div>
+                    </div>
+
+                    <!-- Section 4: Vistoria de Avarias (Inspeção Visual) -->
+                    <div class="form-section">
+                        <div class="inspection-header-row">
+                            <h3><i class="fa-solid fa-clipboard-check"></i> Inspeção de Vistoria (Entrada)</h3>
+                            <div class="score-conservation-badge" id="score-badge-container">
+                                <span class="badge-label">Conservação:</span>
+                                <i class="fa-regular fa-smile-beam" id="score-icon"></i>
+                                <span class="badge-value" id="inspection-score-display">100%</span>
+                                <span class="badge-class" id="inspection-class-display">Excelente</span>
+                            </div>
+                        </div>
+                        <p class="section-help-text">Marque o estado de cada item do veículo. OK: ✅ | Risco/Desgaste: ⚠️ | Amassado/Grave: ❌ | Não Aplicável: ➖</p>
+                        
+                        <div class="inspection-accordion" id="inspection-accordion-container">
+                            <!-- Dynamic Accordion Items generated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Section 5: Pre-existing damages -->
+                    <div class="form-section">
+                        <h3><i class="fa-solid fa-triangle-exclamation"></i> Observações de Avarias & Detalhes</h3>
+                        <p class="section-help-text">Insira notas adicionais sobre arranhões ou pertences. Clique nas tags rápidas para adicionar:</p>
+                        <div class="damage-tags">
+                            <span class="tag" data-damage="Riscos na pintura">Riscos na pintura</span>
+                            <span class="tag" data-damage="Mossa na porta">Mossa na porta</span>
+                            <span class="tag" data-damage="Para-choque raspado">Para-choque raspado</span>
+                            <span class="tag" data-damage="Para-brisa trincado">Para-brisa trincado</span>
+                            <span class="tag" data-damage="Rodas raladas">Rodas raladas</span>
+                            <span class="tag" data-damage="Pintura queimada (sol)">Pintura queimada</span>
+                            <span class="tag" data-damage="Bancos manchados">Bancos manchados</span>
+                            <span class="tag" data-damage="Sem avarias visíveis">Sem avarias</span>
+                        </div>
+                        <div class="input-group">
+                            <textarea id="pre-existing-damages" rows="3" placeholder="Ex: Risco profundo no para-lama traseiro direito, mossa pequena no capô."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Section 6: Dates & Times -->
+                    <div class="form-section">
+                        <h3><i class="fa-regular fa-calendar-days"></i> Cronograma</h3>
+                        <div class="form-grid date-grid">
+                            <div class="input-group">
+                                <label for="entry-date">Data/Hora de Entrada *</label>
+                                <div class="input-wrapper">
+                                    <i class="fa-regular fa-clock"></i>
+                                    <input type="datetime-local" id="entry-date" required>
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label for="delivery-date">Previsão de Entrega *</label>
+                                <div class="input-wrapper">
+                                    <i class="fa-solid fa-hourglass-half"></i>
+                                    <input type="datetime-local" id="delivery-date" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sticky Footer Total and Actions -->
+                    <div class="form-footer">
+                        <div class="total-value-container">
+                            <div class="total-row subtotal-row">
+                                <span class="total-label">Subtotal:</span>
+                                <span>R$ <span id="total-amount-display">0,00</span></span>
+                            </div>
+                            <div class="discount-info" id="discount-info-display" style="display:none;">
+                                <i class="fa-solid fa-tag"></i> Desconto: <strong>−R$ 0,00</strong>
+                            </div>
+                            <div class="total-row final-total-row">
+                                <span class="total-label">💰 VALOR FINAL:</span>
+                                <span class="total-currency">R$</span>
+                                <span class="total-amount" id="total-final-display">0,00</span>
+                            </div>
+                        </div>
+                        <div class="action-buttons">
+                            <button type="button" class="btn btn-secondary" id="clear-btn">
+                                <i class="fa-solid fa-trash-can"></i> Limpar
+                            </button>
+                            <button type="submit" class="btn btn-primary" id="save-btn">
+                                <i class="fa-solid fa-floppy-disk"></i> Salvar e Gerar
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Right Panel: History and Preview -->
+            <section class="history-panel">
+                <div class="panel-header">
+                    <h2><i class="fa-solid fa-clock-rotate-left"></i> Histórico de Entradas</h2>
+                    <div class="search-bar-wrapper">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="search-input" placeholder="Buscar por cliente, placa ou veículo...">
+                    </div>
+                </div>
+
+                <!-- Analytics Summary Widgets -->
+                <div class="analytics-summary-grid">
+                    <div class="analytics-card">
+                        <div class="analytics-icon icon-revenue"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+                        <div class="analytics-info">
+                            <span class="analytics-label">Faturamento Total</span>
+                            <strong class="analytics-value" id="stats-total-revenue">R$ 0,00</strong>
+                        </div>
+                    </div>
+                    <div class="analytics-card">
+                        <div class="analytics-icon icon-count"><i class="fa-solid fa-car-clean"></i></div>
+                        <div class="analytics-info">
+                            <span class="analytics-label">Checklists Salvos</span>
+                            <strong class="analytics-value" id="stats-total-count">0</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Filters -->
+                <div class="advanced-filters-row">
+                    <div class="filter-group">
+                        <label for="filter-date">Período</label>
+                        <select id="filter-date">
+                            <option value="all">Todo o Período</option>
+                            <option value="today">Hoje</option>
+                            <option value="week">Últimos 7 Dias</option>
+                            <option value="month">Este Mês</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filter-payment">Pagamento</label>
+                        <select id="filter-payment">
+                            <option value="all">Todas as Formas</option>
+                            <option value="pix">📱 PIX</option>
+                            <option value="dinheiro">💵 Dinheiro</option>
+                            <option value="cartao">💳 Cartão</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="history-controls">
+                    <span id="history-counter">0 checklists salvos</span>
+                    <button class="btn btn-text-icon" id="export-csv-btn" title="Exportar para Excel/Google Planilhas">
+                        <i class="fa-solid fa-file-excel"></i> Exportar Planilha (CSV)
+                    </button>
+                </div>
+
+                <div class="history-list" id="history-list-container">
+                    <!-- Dynamic history items will be inserted here -->
+                    <div class="empty-state">
+                        <i class="fa-solid fa-folder-open"></i>
+                        <p>Nenhum checklist registrado localmente ainda.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal for Preview & Printing / Actions -->
+    <div class="modal-overlay" id="preview-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-receipt"></i> Comprovante de Entrada</h3>
+                <button class="close-modal-btn" id="close-modal-btn">&times;</button>
+            </div>
+            
+            <div class="modal-body" id="print-area">
+                <!-- Receipt Styling for Print -->
+                <div class="receipt-container">
+                    <div class="receipt-header">
+                        <h2>IDEAL ESTÉTICA AUTOMOTIVA</h2>
+                        <p class="receipt-subheader">Comprovante de Entrada do Veículo</p>
+                        <p class="receipt-contact">Contato: idealbalneario@gmail.com</p>
+                    </div>
+                    
+                    <!-- Photo in Receipt -->
+                    <div class="receipt-photo-container" id="receipt-photo-container" style="display:none;">
+                        <img id="r-photo-img" alt="Foto do veículo" class="receipt-photo">
+                    </div>
+
+                    <div class="receipt-divider"></div>
+                    
+                    <div class="receipt-info-grid">
+                        <div><strong>Cliente:</strong> <span id="r-client"></span></div>
+                        <div><strong>WhatsApp:</strong> <span id="r-whatsapp"></span></div>
+                        <div><strong>Marca:</strong> <span id="r-brand"></span></div>
+                        <div><strong>Modelo:</strong> <span id="r-vehicle"></span></div>
+                        <div><strong>Cor:</strong> <span id="r-color"></span></div>
+                        <div><strong>Placa:</strong> <span id="r-plate"></span></div>
+                    </div>
+
+                    <div class="receipt-divider"></div>
+                    
+                    <div class="receipt-section">
+                        <h4>SERVIÇOS CONTRATADOS:</h4>
+                        <ul class="receipt-services-list" id="r-services">
+                            <!-- Dynamic list -->
+                        </ul>
+                    </div>
+
+                    <div class="receipt-divider" id="receipt-payment-divider" style="display:none;"></div>
+
+                    <div class="receipt-section" id="receipt-payment-section" style="display:none;">
+                        <h4>PAGAMENTO:</h4>
+                        <div class="receipt-payment-grid">
+                            <div><strong>Forma:</strong> <span id="r-payment"></span></div>
+                            <div><strong>Desconto:</strong> <span id="r-discount"></span></div>
+                            <div><strong>Parcelas:</strong> <span id="r-installments"></span></div>
+                        </div>
+                    </div>
+
+                    <div class="receipt-divider"></div>
+
+                    <div class="receipt-section">
+                        <h4>AVARIAS PRÉ-EXISTENTES:</h4>
+                        <p id="r-damages" class="receipt-text-block"></p>
+                    </div>
+
+                    <div class="receipt-divider" id="receipt-inspection-divider" style="display: none;"></div>
+
+                    <div class="receipt-section" id="receipt-inspection-section" style="display: none;">
+                        <h4>LAUDO DE VISTORIA & CONSERVAÇÃO:</h4>
+                        <div class="receipt-score-row">
+                            <span class="receipt-score-label">Score de Conservação:</span>
+                            <div class="receipt-score-badge" id="r-score-badge">
+                                <strong id="r-inspection-score">100%</strong>
+                                <span id="r-inspection-class">(Excelente)</span>
+                            </div>
+                        </div>
+                        <div class="receipt-inspection-grid" id="r-inspection-grid">
+                            <!-- Dynamic non-OK items list -->
+                        </div>
+                    </div>
+
+                    <div class="receipt-divider"></div>
+
+                    <div class="receipt-info-grid receipt-dates">
+                        <div><strong>Data de Entrada:</strong> <span id="r-entry"></span></div>
+                        <div><strong>Previsão de Entrega:</strong> <span id="r-delivery"></span></div>
+                    </div>
+
+                    <div class="receipt-divider"></div>
+
+                    <div class="receipt-footer-total">
+                        <span>VALOR TOTAL DO SERVIÇO:</span>
+                        <strong class="receipt-total-value">R$ <span id="r-total"></span></strong>
+                    </div>
+
+                    <div class="receipt-signatures">
+                        <div class="signature-line">
+                            <div class="line"></div>
+                            <span>Assinatura do Cliente</span>
+                        </div>
+                        <div class="signature-line">
+                            <div class="line"></div>
+                            <span>Responsável - IDEAL</span>
+                        </div>
+                    </div>
+
+                    <div class="receipt-note">
+                        <p>Obrigado pela preferência! Seus dados foram salvos com sucesso no sistema local.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="modal-close-action-btn">Fechar</button>
+                <button class="btn btn-secondary-accent" id="modal-edit-btn" title="Editar este checklist">
+                    <i class="fa-solid fa-pen-to-square"></i> Editar Checklist
+                </button>
+                <button class="btn btn-secondary-accent" id="print-btn">
+                    <i class="fa-solid fa-print"></i> Imprimir / PDF
+                </button>
+                <button class="btn btn-whatsapp" id="whatsapp-send-btn">
+                    <i class="fa-brands fa-whatsapp"></i> Enviar p/ WhatsApp
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Settings (Supabase Connection) -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal-content settings-modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-database"></i> Configurações de Conexão (Supabase)</h3>
+                <button class="close-modal-btn" id="close-settings-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="settings-helper-text">
+                    Conecte o aplicativo ao seu banco de dados online do <strong>Supabase</strong> para salvar os dados na nuvem automaticamente. 
+                    Suas chaves ficam guardadas de forma segura apenas neste navegador.
+                </p>
+                <form id="settings-form" class="settings-form-layout">
+                    <div class="input-group">
+                        <label for="supabase-url">Supabase Project URL</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-link"></i>
+                            <input type="url" id="supabase-url" placeholder="https://xxxxxxxxxxxxxxxxxxxx.supabase.co">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="supabase-key">Supabase Anon Key</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-key"></i>
+                            <input type="password" id="supabase-key" placeholder="Pressione para colar a chave anon">
+                        </div>
+                    </div>
+                    <div class="settings-status-box" id="settings-status-box">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span id="settings-status-text">Banco de dados não configurado (Operando localmente).</span>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="clear-settings-btn">
+                    <i class="fa-solid fa-eraser"></i> Desconectar
+                </button>
+                <button class="btn btn-secondary-accent" id="test-settings-btn">
+                    <i class="fa-solid fa-circle-play"></i> Testar
+                </button>
+                <button class="btn btn-primary" id="save-settings-btn">
+                    <i class="fa-solid fa-check"></i> Salvar e Ativar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Admin Panel (Services and Operators) -->
+    <div class="modal-overlay" id="admin-modal">
+        <div class="modal-content admin-modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-user-shield"></i> Painel de Administração</h3>
+                <button class="close-modal-btn" id="close-admin-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Admin Tabs -->
+                <div class="admin-tabs">
+                    <button class="admin-tab-btn active" data-tab="admin-services-tab" id="tab-btn-services">
+                        <i class="fa-solid fa-screwdriver-wrench"></i> Serviços
+                    </button>
+                    <button class="admin-tab-btn" data-tab="admin-users-tab" id="tab-btn-users">
+                        <i class="fa-solid fa-users-gear"></i> Operadores
+                    </button>
+                </div>
+
+                <!-- Tab content: Services -->
+                <div class="admin-tab-content active" id="admin-services-tab">
+                    <!-- Service List Section -->
+                    <div id="service-list-view">
+                        <div class="admin-tab-header">
+                            <h4>Gerenciar Serviços</h4>
+                            <button type="button" class="btn btn-primary btn-sm" id="admin-add-service-btn">
+                                <i class="fa-solid fa-plus"></i> Novo Serviço
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Ícone</th>
+                                        <th>Nome</th>
+                                        <th>Preço (P/M/G ou Fixo)</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-services-tbody">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Service Form Section (hidden by default) -->
+                    <div id="service-form-view" style="display: none;">
+                        <h4 id="service-form-title">Adicionar Novo Serviço</h4>
+                        <form id="admin-service-form">
+                            <input type="hidden" id="service-form-id">
+                            <div class="input-group">
+                                <label for="service-form-name">Nome do Serviço *</label>
+                                <div class="input-wrapper">
+                                    <i class="fa-solid fa-screwdriver-wrench"></i>
+                                    <input type="text" id="service-form-name" required placeholder="Ex: Higienização de Couro">
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label for="service-form-icon">Emoji / Ícone *</label>
+                                <div class="input-wrapper">
+                                    <i class="fa-regular fa-smile"></i>
+                                    <input type="text" id="service-form-icon" required placeholder="Ex: 🧼" maxlength="4">
+                                </div>
+                            </div>
+                            
+                            <!-- Pricing Options Toggle -->
+                            <div class="input-group">
+                                <label>Tipo de Precificação</label>
+                                <div class="pricing-toggle-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="service-pricing-type" value="tiered" checked>
+                                        <span>Preço por Porte (P/M/G)</span>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="service-pricing-type" value="fixed">
+                                        <span>Preço Fixo / Único</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Tiered Prices Inputs -->
+                            <div class="tiered-prices-row" id="tiered-prices-inputs">
+                                <div class="input-group">
+                                    <label for="service-form-price-p">Pequeno (R$)</label>
+                                    <input type="number" id="service-form-price-p" min="0" step="0.01" value="0.00">
+                                </div>
+                                <div class="input-group">
+                                    <label for="service-form-price-m">Médio (R$)</label>
+                                    <input type="number" id="service-form-price-m" min="0" step="0.01" value="0.00">
+                                </div>
+                                <div class="input-group">
+                                    <label for="service-form-price-g">Grande (R$)</label>
+                                    <input type="number" id="service-form-price-g" min="0" step="0.01" value="0.00">
+                                </div>
+                            </div>
+
+                            <!-- Fixed Price Input -->
+                            <div class="input-group" id="fixed-price-input" style="display: none;">
+                                <label for="service-form-price-fixed">Valor Fixo (R$)</label>
+                                <div class="input-wrapper">
+                                    <span>R$</span>
+                                    <input type="number" id="service-form-price-fixed" min="0" step="0.01" value="0.00">
+                                </div>
+                            </div>
+
+                            <div class="form-actions-row">
+                                <button type="button" class="btn btn-secondary btn-sm" id="service-form-cancel-btn">Cancelar</button>
+                                <button type="submit" class="btn btn-primary btn-sm" id="service-form-save-btn">Salvar Serviço</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Tab content: Users -->
+                <div class="admin-tab-content" id="admin-users-tab" style="display: none;">
+                    <!-- User List Section -->
+                    <div id="user-list-view">
+                        <div class="admin-tab-header">
+                            <h4>Gerenciar Operadores</h4>
+                            <button type="button" class="btn btn-primary btn-sm" id="admin-add-user-btn">
+                                <i class="fa-solid fa-user-plus"></i> Novo Operador
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Usuário</th>
+                                        <th>Função</th>
+                                        <th>Status</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-users-tbody">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- User Form Section (hidden by default) -->
+                    <div id="user-form-view" style="display: none;">
+                        <h4 id="user-form-title">Adicionar Novo Operador</h4>
+                        <form id="admin-user-form">
+                            <div class="input-group" id="username-input-group">
+                                <label for="user-form-username">Nome de Usuário *</label>
+                                <div class="input-wrapper">
+                                    <i class="fa-regular fa-user"></i>
+                                    <input type="text" id="user-form-username" required placeholder="Ex: joao">
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label for="user-form-password">Senha *</label>
+                                <div class="input-wrapper">
+                                    <i class="fa-solid fa-lock"></i>
+                                    <input type="password" id="user-form-password" required placeholder="Senha de acesso">
+                                </div>
+                                <small class="field-hint" id="password-field-hint" style="display:none;">Preencha apenas se desejar alterar a senha atual.</small>
+                            </div>
+                            <div class="input-group">
+                                <label for="user-form-role">Função / Perfil</label>
+                                <div class="input-wrapper">
+                                    <i class="fa-solid fa-user-tag"></i>
+                                    <select id="user-form-role">
+                                        <option value="operator">Operador (Checklist)</option>
+                                        <option value="admin">Administrador (Acesso Total)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-actions-row">
+                                <button type="button" class="btn btn-secondary btn-sm" id="user-form-cancel-btn">Cancelar</button>
+                                <button type="submit" class="btn btn-primary btn-sm" id="user-form-save-btn">Salvar Operador</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="admin-close-action-btn">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for IA Photo Validation -->
+    <div class="modal-overlay" id="ai-validation-modal">
+        <div class="modal-content ai-validation-modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-robot"></i> Confirmação de Leitura (IA)</h3>
+                <button class="close-modal-btn" id="close-ai-validation-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="ai-validation-grid">
+                    <!-- Left column: Captured Photo with Overlay -->
+                    <div class="ai-photo-area">
+                        <div class="ai-photo-wrapper">
+                            <img id="ai-captured-img" src="" alt="Foto capturada">
+                            <div class="ai-camera-guidelines">
+                                <div class="plate-box-guide">
+                                    <span>ÁREA DA PLACA</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Right column: Extracted fields -->
+                    <div class="ai-fields-area">
+                        <div class="ai-loading-step-container" id="ai-loading-steps">
+                            <div class="ai-step-item active" id="step-upload">
+                                <i class="fa-solid fa-spinner fa-spin"></i> Enviando imagem...
+                            </div>
+                            <div class="ai-step-item" id="step-detect">
+                                <i class="fa-regular fa-circle"></i> Analisando placa e modelo...
+                            </div>
+                            <div class="ai-step-item" id="step-finish">
+                                <i class="fa-regular fa-circle"></i> Finalizando extração...
+                            </div>
+                        </div>
+                        
+                        <div class="ai-results-form" id="ai-results-form" style="display: none;">
+                            <p class="validation-helper-text">Revise os dados identificados pela Inteligência Artificial antes de aplicar ao formulário principal:</p>
+                            
+                            <div class="input-group">
+                                <label for="ai-val-brand">Marca</label>
+                                <div class="input-wrapper">
+                                    <i class="fa-solid fa-copyright"></i>
+                                    <input type="text" id="ai-val-brand" placeholder="Ex: Chevrolet">
+                                </div>
+                            </div>
+                            
+                            <div class="input-group">
+                                <label for="ai-val-model">Modelo</label>
+                                <div class="input-wrapper">
+                                    <i class="fa-solid fa-car"></i>
+                                    <input type="text" id="ai-val-model" placeholder="Ex: Onix">
+                                </div>
+                            </div>
+                            
+                            <div class="input-group">
+                                <label for="ai-val-color">Cor</label>
+                                <div class="input-wrapper">
+                                    <i class="fa-solid fa-palette"></i>
+                                    <input type="text" id="ai-val-color" placeholder="Ex: Branco">
+                                </div>
+                            </div>
+                            
+                            <div class="input-group">
+                                <label for="ai-val-plate">Placa</label>
+                                <div class="input-wrapper">
+                                    <i class="fa-solid fa-credit-card"></i>
+                                    <input type="text" id="ai-val-plate" placeholder="Ex: ABC1D23">
+                                </div>
+                            </div>
+                            
+                            <div class="input-group">
+                                <label>Porte Sugerido</label>
+                                <div class="ai-size-group">
+                                    <button type="button" class="ai-size-btn" data-size="P">Pequeno</button>
+                                    <button type="button" class="ai-size-btn" data-size="M">Médio</button>
+                                    <button type="button" class="ai-size-btn" data-size="G">Grande</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="ai-cancel-btn">Cancelar</button>
+                <button class="btn btn-primary" id="ai-confirm-btn" disabled>
+                    <i class="fa-solid fa-check-double"></i> Confirmar e Preencher
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast">Mensagem de feedback</div>
+
+    <!-- Logic Script -->
+    <script src="app.js"></script>
+</body>
+</html>
